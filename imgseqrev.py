@@ -1,87 +1,65 @@
+#!/usr/bin/env python3
 import os
-import shutil
+from os.path import splitext
+from shutil import copyfile
+from time import time
+from collections import Counter
 
-print("=================================")
-print("Reverse Image Sequence v1.1 by Simon Huang")
-print("=================================\n")
 dir_path = os.path.dirname(__file__)
+all_directory_files = []
+
+current_file_name = []
+new_file_name = []
+
+
+def find_all_directory_files():
+    for file in os.listdir(dir_path):
+        if os.path.isfile(file):
+            all_directory_files.append(file)
+
+
+def find_common_extension():
+    tally = Counter()
+
+    for file in all_directory_files:
+        tally[splitext(file)[1]] += 1
+
+    return tally.most_common(1)[0][0]  # Output is [(str, int)]
+
+
+def prepare_reversal(file_extension):
+    for file in all_directory_files:
+        if splitext(file)[1] == file_extension:
+            current_file_name.append(file)
+    current_file_name.sort()
+
+    files_to_process = counter = len(current_file_name)
+
+    for file in current_file_name:
+        new_file_name.append(splitext(file)[0] + "-R" + str(counter - 1).zfill(5) + splitext(file)[1])
+        counter -= 1
+
+    print("{0} files to be renamed:".format(files_to_process))
+
+    for i in range(0, files_to_process):
+        print("{0} -> {1}".format(current_file_name[i], new_file_name[i]))
+
+
+def rename_files():
+    reverse_folder_name = "Reversed-Footage-" + str(int(time()))
+    try:
+        os.mkdir(reverse_folder_name)
+        for i in range(len(current_file_name)):
+            copyfile(current_file_name[i], os.path.join(reverse_folder_name, new_file_name[i]))
+    except Exception as err:
+        print(err)
+        exit(1)
+
 
 if os.path.isdir(dir_path):
-    files = []
-    for f in os.listdir(dir_path):
-        if os.path.isfile(os.path.join(dir_path, f)):
-            files.append(f.split('.'))
-    files.sort()
-    files_count = len(files)
-
-    # print(files)
-
-    print("{:d} files found in {:s}".format(files_count, dir_path))
-
-    # In case of multiple file extension, only reverse the one with the most occurrences
-
-    extension_count = {}
-    for f in files:
-        extension = f[len(f) - 1]  # in case there were multiple '.' in file name eg: test.dot.jpg.txt
-        if extension in extension_count:
-            extension_count[extension] += 1
-        else:
-            extension_count[extension] = 1
-
-    print(extension_count)
-
-    k = list(extension_count.keys())
-    v = list(extension_count.values())
-    popular_extension_count = max(v)
-    popular_extension = k[v.index(popular_extension_count)]
-
-    print("." + popular_extension + " seems to be the most popular file extension in this folder with " +
-          str(popular_extension_count) + " occurrences.")
-
-    startReverse = input("Reverse all ." + popular_extension + " image sequence? (y/n)")
-
-    if startReverse.lower() == "y":
-        print("Reversing...")
-
-        suffix = "RVS"
-
-        # Can be optimized
-        folder_name = "Reversed"
-        for f in files:
-            if f[len(f) - 1] == popular_extension:
-                folder_name = f[0][0:int(len(f[0]) / 2)] + "_" + str(suffix)
-                break
-
-        # TODO: Handle existing folder
-        reverse_folder_path = os.path.join(os.path.abspath(dir_path), folder_name)
-        os.mkdir(reverse_folder_path)
-
-        if os.path.isdir(reverse_folder_path):
-            print("Folder created: " + reverse_folder_path)
-
-            for f in files:
-                if f[len(f) - 1] == popular_extension:
-                    filename_joined = ".".join(f)
-                    source_file_path = os.path.join(os.path.abspath(dir_path), filename_joined)
-
-                    shutil.copy(source_file_path, reverse_folder_path)
-
-                    new_file_name = folder_name + "_" + str(popular_extension_count - 1).zfill(
-                        5) + "." + popular_extension
-                    os.rename(os.path.join(reverse_folder_path, filename_joined),
-                              os.path.join(reverse_folder_path, new_file_name))
-
-                    popular_extension_count -= 1
-
-                    print(filename_joined + " -> " + new_file_name)
-
-            print("All done!")
-
-        else:
-            print("Error creating reverse folder")
-
-    else:
-        print("Process Ended")
-
+    find_all_directory_files()
+    prepare_reversal(find_common_extension())
+    rename_files()
+    print("Done!")
 else:
-    print('Directory error')
+    print("Directory error")
